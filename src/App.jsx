@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import './index.css'
+import CalculadoraSaren from './pages/CalculadoraSaren';
 
 function App() {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -32,30 +33,9 @@ function App() {
       </aside>
       {/* Content */}
       <div className="flex flex-col flex-1 ml-0 md:ml-64">
-        <header className="flex items-center justify-between p-4 border-b">
-          <button
-            className="md:hidden"
-            onClick={() => setMenuOpen(true)}
-            aria-label="Open menu"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth="1.5"
-              stroke="currentColor"
-              className="w-6 h-6"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M3.75 5.25h16.5m-16.5 6h16.5m-16.5 6h16.5"
-              />
-            </svg>
-          </button>
-          <h1 className="text-xl font-semibold">Panel Administrativo</h1>
-        </header>
-        <main className="flex-1 p-4">Bienvenido</main>
+
+        <CalculadoraSaren />
+        
       </div>
     </div>
   )
