@@ -1,4 +1,6 @@
 /** @type {import('tailwindcss').Config} */
+const { fontFamily } = require("tailwindcss/defaultTheme");
+
 export default {
   darkMode: ["class"],
   content: [
@@ -6,7 +8,11 @@ export default {
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        sans: ["Geist", ...fontFamily.sans],
+      },
+    },
   },
   plugins: [require("tailwindcss-animate")],
 };
