@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
     Command,
     CommandEmpty,
@@ -33,8 +33,8 @@ export default function CalculadoraAranceles() {
     const [grupo, setGrupo] = useState("");
     const [actuacion, setActuacion] = useState("");
     const [libros, setLibros] = useState({});
-    const [folios, setFolios] = useState(0);
-    const [capital, setCapital] = useState(0);
+    const [folios, setFolios] = useState("");
+    const [capital, setCapital] = useState("");
     const [resultado, setResultado] = useState(null);
     const [open, setOpen] = useState(false);
 
@@ -42,10 +42,22 @@ export default function CalculadoraAranceles() {
         setLibros((prev) => ({ ...prev, [libro]: folios }));
     };
 
+    const selectedActData = useMemo(() => {
+        if (!organismo || !actuacion) return null;
+        const orgData = data[organismo];
+        if (!orgData) return null;
+        if (orgData[actuacion]) return orgData[actuacion];
+        for (const actos of Object.values(orgData)) {
+            if (actos && typeof actos === "object" && actos[actuacion]) {
+                return actos[actuacion];
+            }
+        }
+        return null;
+    }, [organismo, actuacion]);
+
     const calcular = () => {
         if (!organismo || !actuacion) return;
-        let tasa = data[organismo][actuacion];
-        let totalUSD = 0;
+        let totalPetros = 0;
 
         if (actuacion === "Sellado de Libros") {
             const TASA_LIBRO = 0.10; // por libro
@@ -55,13 +67,33 @@ export default function CalculadoraAranceles() {
                 const f = parseFloat(folios);
                 if (!isNaN(f) && f > 0) {
                     const totalLibroPetros = TASA_LIBRO + TASA_FOLIO * f;
-                    totalUSD += totalLibroPetros * PETRO_TO_USD;
+                    totalPetros += totalLibroPetros;
                 }
             }
-        } else {
-            totalUSD = tasa * PETRO_TO_USD;
+        } else if (selectedActData) {
+            if (
+                selectedActData.primerFolio !== undefined &&
+                selectedActData.folioAdicional !== undefined
+            ) {
+                const f = parseInt(folios, 10);
+                if (!isNaN(f) && f > 0) {
+                    totalPetros +=
+                        selectedActData.primerFolio +
+                        selectedActData.folioAdicional * Math.max(f - 1, 0);
+                }
+            } else if (typeof selectedActData === "number") {
+                totalPetros += selectedActData;
+            }
+
+            if (selectedActData.porcentajeCapital !== undefined) {
+                const c = parseFloat(capital);
+                if (!isNaN(c) && c > 0) {
+                    totalPetros += c * selectedActData.porcentajeCapital;
+                }
+            }
         }
 
+        const totalUSD = totalPetros * PETRO_TO_USD;
         setResultado({ organismo, actuacion, totalUSD, fecha: new Date().toLocaleDateString() });
     };
 
@@ -111,6 +143,8 @@ export default function CalculadoraAranceles() {
                                                     value={act}
                                                     onSelect={() => {
                                                         setActuacion(act);
+                                                        setFolios("");
+                                                        setCapital("");
                                                         setOpen(false);
                                                     }}
                                                 >
@@ -130,6 +164,53 @@ export default function CalculadoraAranceles() {
                     </Popover>
                 )}
             </div>
+
+            {selectedActData &&
+                selectedActData.primerFolio !== undefined &&
+                selectedActData.folioAdicional !== undefined &&
+                actuacion !== "Sellado de Libros" && (
+                    <div className="space-y-1">
+                        <label className="text-sm" htmlFor="input-folios">
+                            Total de folios
+                        </label>
+                        <Input
+                            id="input-folios"
+                            type="text"
+                            inputMode="numeric"
+                            placeholder="Folios"
+                            value={folios}
+                            onChange={(e) => {
+                                const value = e.target.value;
+                                if (value === "" || (/^[1-9][0-9]*$/.test(value) || value === "0")) {
+                                    setFolios(value);
+                                }
+                            }}
+                            className="w-full"
+                        />
+                    </div>
+                )}
+
+            {selectedActData && selectedActData.porcentajeCapital !== undefined && (
+                <div className="space-y-1">
+                    <label className="text-sm" htmlFor="input-capital">
+                        Monto del capital
+                    </label>
+                    <Input
+                        id="input-capital"
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="Capital"
+                        value={capital}
+                        onChange={(e) => {
+                            const value = e.target.value;
+                            if (value === "" || /^\d*(\.\d*)?$/.test(value)) {
+                                setCapital(value);
+                            }
+                        }}
+                        className="w-full"
+                    />
+                </div>
+            )}
 
             {actuacion === "Sellado de Libros" && (
                 <div className="space-y-6">
