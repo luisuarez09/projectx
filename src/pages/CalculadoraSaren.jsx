@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
     Command,
     CommandEmpty,
@@ -18,6 +18,19 @@ import { data } from "@/lib/sarenData";
 
 const PETRO_TO_USD = 60;
 
+function findActData(organismo, act) {
+    if (!organismo || !act) return null;
+    const orgData = data[organismo];
+    if (!orgData) return null;
+    if (orgData[act]) return orgData[act];
+    for (const value of Object.values(orgData)) {
+        if (value && typeof value === "object" && value[act]) {
+            return value[act];
+        }
+    }
+    return null;
+}
+
 
 const tiposLibros = [
     "Diario",
@@ -33,10 +46,14 @@ export default function CalculadoraAranceles() {
     const [grupo, setGrupo] = useState("");
     const [actuacion, setActuacion] = useState("");
     const [libros, setLibros] = useState({});
-    const [folios, setFolios] = useState(0);
-    const [capital, setCapital] = useState(0);
+    const [folios, setFolios] = useState("");
+    const [capital, setCapital] = useState("");
     const [resultado, setResultado] = useState(null);
     const [open, setOpen] = useState(false);
+
+    const actData = useMemo(() => findActData(organismo, actuacion), [organismo, actuacion]);
+    const requiresFolios = actData && typeof actData.primerFolio === "number";
+    const requiresCapital = actData && typeof actData.porcentajeCapital === "number";
 
     const handleLibroChange = (libro, folios) => {
         setLibros((prev) => ({ ...prev, [libro]: folios }));
@@ -44,25 +61,50 @@ export default function CalculadoraAranceles() {
 
     const calcular = () => {
         if (!organismo || !actuacion) return;
-        let tasa = data[organismo][actuacion];
-        let totalUSD = 0;
+
+        let totalPetros = 0;
+        let breakdown = {};
 
         if (actuacion === "Sellado de Libros") {
             const TASA_LIBRO = 0.10; // por libro
             const TASA_FOLIO = 0.01; // por folio
-
             for (const [libro, folios] of Object.entries(libros)) {
                 const f = parseFloat(folios);
                 if (!isNaN(f) && f > 0) {
                     const totalLibroPetros = TASA_LIBRO + TASA_FOLIO * f;
-                    totalUSD += totalLibroPetros * PETRO_TO_USD;
+                    totalPetros += totalLibroPetros;
                 }
             }
-        } else {
-            totalUSD = tasa * PETRO_TO_USD;
+        } else if (actData) {
+            const folioCount = parseFloat(folios) || 0;
+            const capitalAmount = parseFloat(capital) || 0;
+            let folioCharge = 0;
+            let capitalCharge = 0;
+
+            if (requiresFolios) {
+                folioCharge = actData.primerFolio;
+                if (folioCount > 1) {
+                    folioCharge += (folioCount - 1) * actData.folioAdicional;
+                }
+                if (actData.tipo === "petro" || actData.tipo === "petro+porcentaje") {
+                    totalPetros += folioCharge;
+                }
+            }
+
+            if (requiresCapital) {
+                capitalCharge = capitalAmount * actData.porcentajeCapital;
+                if (actData.tipo === "porcentaje" || actData.tipo === "petro+porcentaje") {
+                    totalPetros += capitalCharge;
+                }
+            }
+
+            breakdown = { folioCharge, capitalCharge };
+        } else if (typeof data[organismo][actuacion] === "number") {
+            totalPetros = data[organismo][actuacion];
         }
 
-        setResultado({ organismo, actuacion, totalUSD, fecha: new Date().toLocaleDateString() });
+        const totalUSD = totalPetros * PETRO_TO_USD;
+        setResultado({ organismo, actuacion, totalUSD, totalPetros, breakdown, fecha: new Date().toLocaleDateString() });
     };
 
     return (
@@ -111,6 +153,9 @@ export default function CalculadoraAranceles() {
                                                     value={act}
                                                     onSelect={() => {
                                                         setActuacion(act);
+                                                        setFolios("");
+                                                        setCapital("");
+                                                        setLibros({});
                                                         setOpen(false);
                                                     }}
                                                 >
@@ -130,6 +175,38 @@ export default function CalculadoraAranceles() {
                     </Popover>
                 )}
             </div>
+
+            {requiresFolios && actuacion !== "Sellado de Libros" && (
+                <Input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="Cantidad de folios"
+                    className="w-full"
+                    value={folios}
+                    onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === "" || (/^[1-9][0-9]*$/.test(value) || value === "0")) {
+                            setFolios(value);
+                        }
+                    }}
+                />
+            )}
+
+            {requiresCapital && (
+                <Input
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="Capital"
+                    className="w-full"
+                    value={capital}
+                    onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === "" || /^\d*(\.\d*)?$/.test(value)) {
+                            setCapital(value);
+                        }
+                    }}
+                />
+            )}
 
             {actuacion === "Sellado de Libros" && (
                 <div className="space-y-6">
@@ -202,7 +279,20 @@ export default function CalculadoraAranceles() {
                     <p><strong>Organismo:</strong> {resultado.organismo}</p>
                     <p><strong>Actuación:</strong> {resultado.actuacion}</p>
                     <p><strong>Fecha:</strong> {resultado.fecha}</p>
+                    {resultado.totalPetros !== undefined && (
+                        <p><strong>Total estimado (Petros):</strong> {resultado.totalPetros.toFixed(2)}</p>
+                    )}
                     <p><strong>Total estimado (USD):</strong> ${resultado.totalUSD.toFixed(2)}</p>
+                    {(resultado.breakdown.folioCharge || resultado.breakdown.capitalCharge) && (
+                        <div className="text-sm space-y-1">
+                            {resultado.breakdown.folioCharge ? (
+                                <p>Por folios: {resultado.breakdown.folioCharge.toFixed(2)} Petros</p>
+                            ) : null}
+                            {resultado.breakdown.capitalCharge ? (
+                                <p>Por capital: {resultado.breakdown.capitalCharge.toFixed(2)} Petros</p>
+                            ) : null}
+                        </div>
+                    )}
                 </div>
             )}
         </div>
