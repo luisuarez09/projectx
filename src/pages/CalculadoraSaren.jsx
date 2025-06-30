@@ -43,8 +43,8 @@ export default function CalculadoraAranceles() {
     };
 
     const calcular = () => {
-        if (!organismo || !actuacion) return;
-        let tasa = data[organismo][actuacion];
+        if (!organismo || !actuacion || !grupo) return;
+        const info = data[organismo][grupo][actuacion];
         let totalUSD = 0;
 
         if (actuacion === "Sellado de Libros") {
@@ -59,7 +59,7 @@ export default function CalculadoraAranceles() {
                 }
             }
         } else {
-            totalUSD = tasa * PETRO_TO_USD;
+            totalUSD = info * PETRO_TO_USD;
         }
 
         setResultado({ organismo, actuacion, totalUSD, fecha: new Date().toLocaleDateString() });
@@ -111,6 +111,7 @@ export default function CalculadoraAranceles() {
                                                     value={act}
                                                     onSelect={() => {
                                                         setActuacion(act);
+                                                        setGrupo(grupo);
                                                         setOpen(false);
                                                     }}
                                                 >
