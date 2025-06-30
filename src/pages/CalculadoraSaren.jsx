@@ -11,7 +11,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Input } from "../components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { ChevronDownIcon, CheckIcon } from "@radix-ui/react-icons"
-import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Checkbox } from "../components/ui/checkbox";
 import { data } from "@/lib/sarenData";
@@ -33,8 +32,6 @@ export default function CalculadoraAranceles() {
     const [grupo, setGrupo] = useState("");
     const [actuacion, setActuacion] = useState("");
     const [libros, setLibros] = useState({});
-    const [folios, setFolios] = useState(0);
-    const [capital, setCapital] = useState(0);
     const [resultado, setResultado] = useState(null);
     const [open, setOpen] = useState(false);
 
@@ -44,7 +41,9 @@ export default function CalculadoraAranceles() {
 
     const calcular = () => {
         if (!organismo || !actuacion) return;
-        let tasa = data[organismo][actuacion];
+        let tasa = grupo && data[organismo][grupo]
+            ? data[organismo][grupo][actuacion]
+            : data[organismo][actuacion];
         let totalUSD = 0;
 
         if (actuacion === "Sellado de Libros") {
@@ -110,6 +109,7 @@ export default function CalculadoraAranceles() {
                                                     key={act}
                                                     value={act}
                                                     onSelect={() => {
+                                                        setGrupo(grupo);
                                                         setActuacion(act);
                                                         setOpen(false);
                                                     }}
