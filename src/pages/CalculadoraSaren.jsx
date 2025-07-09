@@ -7,6 +7,8 @@ import {
     CommandItem,
     CommandList,
 } from "@/components/ui/command";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "../components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
@@ -37,6 +39,7 @@ export default function CalculadoraAranceles() {
     const [capital, setCapital] = useState("");
     const [resultado, setResultado] = useState(null);
     const [open, setOpen] = useState(false);
+    const [modalAbierto, setModalAbierto] = useState(false);
 
     const handleLibroChange = (libro, folios) => {
         setLibros((prev) => ({ ...prev, [libro]: folios }));
@@ -95,6 +98,7 @@ export default function CalculadoraAranceles() {
 
         const totalUSD = totalPetros * PETRO_TO_USD;
         setResultado({ organismo, actuacion, totalUSD, fecha: new Date().toLocaleDateString() });
+        setModalAbierto(true);
     };
 
     return (
@@ -277,15 +281,32 @@ export default function CalculadoraAranceles() {
                 <Button onClick={calcular} className="w-full">Calcular</Button>
             </div>
 
-            {resultado && (
-                <div className="border rounded-xl p-4 space-y-2">
-                    <h2 className="text-lg font-semibold">Resumen de la estimación</h2>
-                    <p><strong>Organismo:</strong> {resultado.organismo}</p>
-                    <p><strong>Actuación:</strong> {resultado.actuacion}</p>
-                    <p><strong>Fecha:</strong> {resultado.fecha}</p>
-                    <p><strong>Total estimado (USD):</strong> ${resultado.totalUSD.toFixed(2)}</p>
-                </div>
-            )}
+            <Dialog open={modalAbierto} onOpenChange={setModalAbierto}>
+                <DialogContent className="max-w-md p-6 rounded-lg border bg-white">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-bold text-center">
+                            Cálculo Estimado de Aranceles
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <div className="space-y-2 text-sm text-gray-700">
+                        <div className="text-2xl font-bold text-center text-green-600">
+                            ${resultado?.totalUSD.toFixed(2)} USD
+                        </div>
+
+                        <hr className="my-2" />
+
+                        <p><strong>Organismo:</strong> {resultado?.organismo}</p>
+                        <p><strong>Actuación:</strong> {resultado?.actuacion}</p>
+                        <p><strong>Fecha:</strong> {resultado?.fecha}</p>
+                    </div>
+
+                    <DialogFooter className="mt-4 pt-4 border-t text-xs text-muted-foreground text-justify leading-relaxed">
+                        Este cálculo tiene carácter estimativo y orientativo, basado en lo dispuesto en la Providencia Administrativa Nº 002 publicada en la Gaceta Oficial N° 42.301 del 20/01/2022, y corresponde al monto que se reflejará en la Planilla Única Bancaria (PUB) emitida por el SAREN.
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
         </div>
     );
 }

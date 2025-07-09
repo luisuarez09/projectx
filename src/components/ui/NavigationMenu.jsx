@@ -9,6 +9,35 @@ export default function NavigationMenuHeader({ onToggleTheme, isDark }) {
     <div className="flex justify-between items-center px-4 py-2">
       <NavigationMenu>
         <NavigationMenuList>
+
+          <NavigationMenuItem>
+            <NavigationMenuTrigger>Herramientas</NavigationMenuTrigger>
+            <NavigationMenuContent>
+              <ul className="w-[300px] p-3 space-y-2">
+                <li>
+                  <NavigationMenuLink asChild>
+                    <Link to="/calculadora-saren" className="block">
+                      <div className="text-sm font-medium leading-none">Calculadora SAREN</div>
+                      <p className="text-sm text-muted-foreground leading-tight mt-1">
+                        Estime el costo de actuaciones registrales.
+                      </p>
+                    </Link>
+                  </NavigationMenuLink>
+                </li>
+                <li>
+                  <NavigationMenuLink asChild>
+                    <Link to="/calculadora-reconversion" className="block">
+                      <div className="text-sm font-medium leading-none">Calculadora de Reconversión</div>
+                      <p className="text-sm text-muted-foreground leading-tight mt-1">
+                        Calcule el valor actual de un monto histórico en bolívares.
+                      </p>
+                    </Link>
+                  </NavigationMenuLink>
+                </li>
+              </ul>
+            </NavigationMenuContent>
+          </NavigationMenuItem>
+
           {/* <NavigationMenuItem>
             <NavigationMenuLink asChild>
               <Link to="/" className="font-semibold text-sm">
