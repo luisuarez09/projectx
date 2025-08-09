@@ -1,3 +1,5 @@
+/* eslint-env node */
+/* global process */
 // api/index.js  (ESM)
 import express from "express";
 import cors from "cors";
@@ -245,10 +247,18 @@ app.put("/api/estimates/:id", async (req, res) => {
 });
 
 app.delete("/api/estimates/:id", async (req, res) => {
-    const id = Number(req.params.id);
-    await prisma.estimateItem.deleteMany({ where: { estimateId: id } });
-    await prisma.estimate.delete({ where: { id } });
-    res.status(204).end();
+    try {
+        const id = Number(req.params.id);
+        await prisma.estimateItem.deleteMany({ where: { estimateId: id } });
+        await prisma.estimate.delete({ where: { id } });
+        res.status(204).end();
+    } catch (err) {
+        console.error("DELETE /api/estimates/:id", err);
+        if (err.code === "P2025") {
+            return res.status(404).json({ error: "Presupuesto no encontrado" });
+        }
+        res.status(500).json({ error: "Error eliminando presupuesto" });
+    }
 });
 
 const PORT = process.env.PORT || 4000;
