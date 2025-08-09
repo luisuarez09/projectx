@@ -4,8 +4,6 @@ import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
 import { Input } from "../components/ui/input"
 import { Button } from "../components/ui/button"
-import { Label } from "../components/ui/label"
-import { Card, CardContent } from "../components/ui/card";
 import { format } from "date-fns"
 import CurrencyInput from 'react-currency-input-field'
 
