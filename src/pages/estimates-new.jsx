@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectTrigger, SelectValue, SelectItem } from "@/components/ui/select";
 import { formatMoney } from "@/utils/currency";
-import { useEffect, useMemo, useState } from "react";
 
 export default function EstimateNew() {
   const form = useForm({
@@ -40,26 +39,30 @@ export default function EstimateNew() {
   const showRate = currency === "VES";
 
   const onSubmit = async (values) => {
-    const payload = {
-      ...values,
-      items: values.items.map((it, i) => ({
-        ...it,
-        qty: Number(it.qty),
-        unitPrice: Number(it.unitPrice),
-      })),
-    };
+    try {
+      const payload = {
+        ...values,
+        items: values.items.map((it) => ({
+          ...it,
+          qty: Number(it.qty),
+          unitPrice: Number(it.unitPrice),
+        })),
+      };
 
-    const res = await fetch("/api/estimates", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) {
-      alert("Error al guardar");
-      return;
+      const res = await fetch("/api/estimates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        alert("Error al guardar");
+        return;
+      }
+      // redirige a listado
+      window.location.href = "/estimates";
+    } catch {
+      alert("Error de red al guardar");
     }
-    // redirige a listado
-    window.location.href = "/estimates";
   };
 
   return (
