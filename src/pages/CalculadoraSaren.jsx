@@ -32,7 +32,6 @@ const tiposLibros = [
 
 export default function CalculadoraAranceles() {
     const [organismo, setOrganismo] = useState("");
-    const [grupo, setGrupo] = useState("");
     const [actuacion, setActuacion] = useState("");
     const [libros, setLibros] = useState({});
     const [folios, setFolios] = useState("");
@@ -139,9 +138,9 @@ export default function CalculadoraAranceles() {
                             <Command>
                                 <CommandInput placeholder="Buscar actuación..." />
                                 <CommandList className="max-h-64 overflow-y-auto">
-                                    {Object.entries(data[organismo]).map(([grupo, actos]) => (
-                                        <CommandGroup key={grupo} heading={grupo}>
-                                            {Object.keys(actos).map((act) => (
+                                    {Object.entries(data[organismo]).map(([groupName, acts]) => (
+                                        <CommandGroup key={groupName} heading={groupName}>
+                                            {Object.keys(acts).map((act) => (
                                                 <CommandItem
                                                     key={act}
                                                     value={act}
