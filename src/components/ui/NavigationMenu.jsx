@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React from "react"
 import { MoonIcon, SunIcon } from "@radix-ui/react-icons"
 import { NavigationMenu, NavigationMenuList, NavigationMenuItem, NavigationMenuTrigger, NavigationMenuContent, NavigationMenuLink } from "./navigation-menu"
 import { Button } from "./button"
