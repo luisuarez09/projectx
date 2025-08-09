@@ -5,8 +5,9 @@ import EstimateItemRow from "@/components/ui/EstimateItemRow";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectTrigger, SelectValue, SelectItem } from "@/components/ui/select";
+import ClientPicker from "@/components/ClientPicker";
 import { formatMoney } from "@/utils/currency";
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 
 export default function EstimateNew() {
   const form = useForm({
@@ -28,6 +29,8 @@ export default function EstimateNew() {
 
   const currency = watch("currency");
   const items = watch("items") || [];
+  const clientId = watch("clientId");
+  const [clientInfo, setClientInfo] = useState(null);
   const subtotal = items.reduce((acc, it) => acc + (Number(it.qty) || 0) * (Number(it.unitPrice) || 0), 0);
   const discountRate = Number(watch("discountRate") || 0);
   const taxRate = Number(watch("taxRate") || 0);
@@ -42,11 +45,11 @@ export default function EstimateNew() {
   const onSubmit = async (values) => {
     const payload = {
       ...values,
-      items: values.items.map((it, i) => ({
-        ...it,
-        qty: Number(it.qty),
-        unitPrice: Number(it.unitPrice),
-      })),
+        items: values.items.map((it) => ({
+          ...it,
+          qty: Number(it.qty),
+          unitPrice: Number(it.unitPrice),
+        })),
     };
 
     const res = await fetch("/api/estimates", {
@@ -67,12 +70,23 @@ export default function EstimateNew() {
       <h1 className="text-2xl font-semibold">Nuevo Presupuesto</h1>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* Cliente */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <div>
-            <label className="text-sm font-medium">Cliente ID</label>
-            <Input placeholder="ID del cliente" {...register("clientId")} />
-          </div>
+          {/* Cliente */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div className="md:col-span-2">
+              <label className="text-sm font-medium">Cliente</label>
+              <ClientPicker
+                value={clientId ? Number(clientId) : undefined}
+                onChange={(id, clientObj) => {
+                  setValue("clientId", id, { shouldValidate: true });
+                  setClientInfo(clientObj);
+                }}
+                placeholder="Selecciona un cliente…"
+              />
+              <input type="hidden" {...register("clientId", { valueAsNumber: true })} />
+              {clientInfo?.taxId && (
+                <p className="mt-1 text-xs text-muted-foreground">{clientInfo.taxId}</p>
+              )}
+            </div>
 
           <div>
             <label className="text-sm font-medium">Fecha</label>
