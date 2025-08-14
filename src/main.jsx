@@ -1,14 +1,42 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
-import App from "./App.jsx";
-import "./index.css";
+import React from "react"
+import ReactDOM from "react-dom/client"
+import { createBrowserRouter, RouterProvider } from "react-router-dom"
+import "@/index.css"
+import { ThemeProvider } from "@/components/theme-provider"
 
-import { BrowserRouter } from "react-router-dom";
+import AppLayout from "@/layouts/app-layout"
+import Dashboard from "@/pages/dashboard"
+import Placeholder from "@/pages/placeholder"
+import CompanyIndex from "@/pages/settings/company/index"
+import CompanyEditor from "@/pages/settings/company/editor"
+
+
+const router = createBrowserRouter([
+  {
+    path: "/dashboard",
+    element: (
+      <AppLayout>
+        <Dashboard />
+      </AppLayout>
+    ),
+  },
+  { path: "/settings/company", element: <AppLayout><CompanyIndex /></AppLayout> },
+  { path: "/settings/company/new", element: <AppLayout><CompanyEditor /></AppLayout> },
+  { path: "/settings/company/:id", element: <AppLayout><CompanyEditor /></AppLayout> },
+  {
+    path: "*",
+    element: (
+      <AppLayout>
+        <Placeholder />
+      </AppLayout>
+    ),
+  },
+])
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
+    <ThemeProvider>
+      <RouterProvider router={router} />
+    </ThemeProvider>
   </React.StrictMode>
-);
+)
