@@ -4,9 +4,11 @@
 import express from "express";
 import cors from "cors";
 import { PrismaClient } from "@prisma/client";
+import { seniatRouter } from "./tools/seniat.js"
 
 const app = express();
 const prisma = new PrismaClient();
+app.use("/api/tools/seniat", seniatRouter)
 
 // Middlewares
 app.use(cors());
@@ -14,8 +16,14 @@ app.use(express.json());
 
 // Health
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
+app.get("/api/tools/seniat/ping", (_req, res) => res.json({ ok: true }))
+app.use("/api/tools/seniat", seniatRouter)
 
 // ===== CLIENTS CRUD =====
+
+app.listen(process.env.PORT || 3001, () => {
+  console.log("API ready")
+})
 
 // Listar
 app.get("/api/clients", async (req, res) => {

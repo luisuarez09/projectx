@@ -30,7 +30,7 @@ export const navSections = [
     label: "Facturación",
     items: [
       { title: "Ventas", url: "/billing/sales", icon: Receipt },
-      { title: "Compras", url: "/billing/purchases", icon: ShoppingCart },
+      { title: "Compras", url: "/facturas/compras", icon: ShoppingCart },
       { title: "Retenciones", url: "/billing/withholdings", icon: Percent },
       { title: "Importar por lote", url: "/billing/import", icon: FileSpreadsheet },
     ],

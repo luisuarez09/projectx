@@ -9,7 +9,8 @@ import Dashboard from "@/pages/dashboard"
 import Placeholder from "@/pages/placeholder"
 import CompanyIndex from "@/pages/settings/company/index"
 import CompanyEditor from "@/pages/settings/company/editor"
-
+import ComprasIndex from "@/pages/compras"
+import ComprasInvoiceCreate from "./pages/invoices/compras/compras-create"
 
 const router = createBrowserRouter([
   {
@@ -20,6 +21,8 @@ const router = createBrowserRouter([
       </AppLayout>
     ),
   },
+  { path: "/facturas/compras", element: <AppLayout><ComprasIndex /></AppLayout> },
+  { path: "/facturas/compras/new", element: <AppLayout><ComprasInvoiceCreate /></AppLayout> },
   { path: "/settings/company", element: <AppLayout><CompanyIndex /></AppLayout> },
   { path: "/settings/company/new", element: <AppLayout><CompanyEditor /></AppLayout> },
   { path: "/settings/company/:id", element: <AppLayout><CompanyEditor /></AppLayout> },
