@@ -19,6 +19,7 @@ import {
   LineChart,
   Banknote,
   ClipboardList,
+  Truck,
 } from "lucide-react"
 
 export const navSections = [
@@ -29,8 +30,10 @@ export const navSections = [
   {
     label: "Facturación",
     items: [
-      { title: "Ventas", url: "/billing/sales", icon: Receipt },
+      { title: "Ventas", url: "/facturas/ventas", icon: Receipt },
       { title: "Compras", url: "/facturas/compras", icon: ShoppingCart },
+      { title: "Clientes", url: "/customers", icon: Users },
+      { title: "Proveedores", url: "/proveedor", icon: Truck },
       { title: "Retenciones", url: "/billing/withholdings", icon: Percent },
       { title: "Importar por lote", url: "/billing/import", icon: FileSpreadsheet },
     ],

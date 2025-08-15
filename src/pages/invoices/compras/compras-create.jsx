@@ -14,7 +14,6 @@ import { Toaster, toast } from "sonner"
 import { ArrowLeft, Save, FilePlus2, UserPlus, Trash2, Plus, Search, Loader2, Check, X } from "lucide-react"
 
 /**
- * Página: Registrar Factura (inspirado en Odoo) — con distribución contable, validación y opciones de crédito fiscal
  * Incluye:
  * - Fecha DD/MM/AAAA → se guarda ISO interno
  * - Moneda por defecto: VEF
