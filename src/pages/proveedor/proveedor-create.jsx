@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -17,9 +17,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
 
 // icons
-import { ArrowLeft, Building2, CheckCircle2, FileText, History, Loader2, Plus, Save, Search, Tags } from "lucide-react"
+import { ArrowLeft, Building2, CheckCircle2, FileText, History, Loader2, Plus, RefreshCw, Save, Search, Tags } from "lucide-react"
+
+const SENIAT_API = "/api/tools/seniat/lookup"
 
 /**
  * Página de creación de PROVEEDORES (full-page, no modal)
@@ -58,6 +68,14 @@ const schema = z.object({
 
 export default function ProveedorCreatePage() {
   const [seniatState, setSeniatState] = useState(/** @type {"idle"|"loading"|"ok"|"error"} */("idle"))
+
+  // CAPTCHA dialog state
+  const [captchaOpen, setCaptchaOpen] = useState(false)
+  const [captchaSession, setCaptchaSession] = useState(/** @type {string|null} */(null))
+  const [captchaEndpoint, setCaptchaEndpoint] = useState(/** @type {string|null} */(null))
+  const [captchaInput, setCaptchaInput] = useState("")
+  const [captchaLoading, setCaptchaLoading] = useState(false)
+  const [captchaImgKey, setCaptchaImgKey] = useState(0) // force img reload
   const [tagInput, setTagInput] = useState("")
 
   const {
@@ -91,6 +109,8 @@ export default function ProveedorCreatePage() {
 
   const rif = watch("rif")
   const tags = watch("tags") || []
+  const tipoContribuyente = watch("tipoContribuyente")
+  const retencionIVA = watch("retencionIVA")
 
   // Normaliza RIF (sin guiones, mayúsculas)
   const onRifChange = (val) => {
@@ -98,24 +118,94 @@ export default function ProveedorCreatePage() {
     setValue("rif", clean, { shouldDirty: true })
   }
 
-  // Simulación de servicio SENIAT (sustituir por llamada real)
+  // Paso 1: iniciar sesión SENIAT y mostrar diálogo de CAPTCHA
   const buscarEnSeniat = async () => {
-    if (!rif) {
-      toast.message("Ingresa un RIF primero")
+    if (!rif || rif.length < 9) {
+      toast.warning("Ingresa un RIF válido antes de buscar (ej: J012345678)")
       return
     }
     setSeniatState("loading")
     try {
-      await new Promise((r) => setTimeout(r, 1400))
-      // demo
-      setValue("nombre", "Proveedor de Ejemplo C.A.", { shouldDirty: true })
-      setValue("tipoContribuyente", "especial", { shouldDirty: true })
-      setValue("direccion", "Av. Principal #123, Caracas", { shouldDirty: true })
-      setSeniatState("ok")
-      toast.success("Datos cargados desde SENIAT")
+      const resp = await fetch(SENIAT_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ init: true }),
+      })
+      if (!resp.ok) throw new Error("Error al iniciar sesión con SENIAT")
+      const { sessionId, captchaEndpoint: endpoint } = await resp.json()
+      setCaptchaSession(sessionId)
+      setCaptchaEndpoint(endpoint)
+      setCaptchaInput("")
+      setCaptchaImgKey((k) => k + 1)
+      setSeniatState("idle")
+      setCaptchaOpen(true)
     } catch (e) {
       setSeniatState("error")
-      toast.error("No fue posible consultar el SENIAT")
+      toast.error("No se pudo conectar con el servidor SENIAT. ¿Está corriendo 'npm run seniat'?")
+    }
+  }
+
+  // Paso 2: enviar CAPTCHA y obtener datos del contribuyente
+  const submitCaptcha = async () => {
+    if (!captchaInput.trim()) {
+      toast.warning("Ingresa el código del CAPTCHA")
+      return
+    }
+    setCaptchaLoading(true)
+    try {
+      const resp = await fetch(SENIAT_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: captchaSession,
+          rif,
+          captcha: captchaInput.trim(),
+        }),
+      })
+      const data = await resp.json()
+
+      if (!resp.ok) {
+        if (resp.status === 400) {
+          // CAPTCHA incorrecto → refrescar imagen
+          toast.error(data.error || "CAPTCHA incorrecto. Intenta de nuevo.")
+          setCaptchaInput("")
+          setCaptchaImgKey((k) => k + 1)
+          return
+        }
+        if (resp.status === 410) {
+          toast.error("La sesión expiró. Vuelve a hacer clic en Buscar.")
+          setCaptchaOpen(false)
+          return
+        }
+        if (resp.status === 404) {
+          toast.error("RIF no encontrado en el SENIAT.")
+          setCaptchaOpen(false)
+          return
+        }
+        throw new Error(data.error || "Error desconocido")
+      }
+
+      // Éxito: poblar campos del formulario
+      const { legalName, contribType, vatRetention } = data
+      if (legalName) setValue("nombre", legalName, { shouldDirty: true })
+      if (contribType) {
+        const tipo = contribType.toLowerCase() === "especial" ? "especial" : "ordinario"
+        setValue("tipoContribuyente", tipo, { shouldDirty: true })
+      }
+      if (vatRetention !== undefined) {
+        // vatRetention viene como número: 75, 100, 0
+        const pct = vatRetention === 75 ? "75%" : vatRetention === 0 ? "0%" : "100%"
+        setValue("retencionIVA", pct, { shouldDirty: true })
+      }
+
+      setSeniatState("ok")
+      setCaptchaOpen(false)
+      toast.success("Consulta realizada al SENIAT exitosamente")
+    } catch (e) {
+      toast.error("Error al consultar el SENIAT: " + e.message)
+      setSeniatState("error")
+    } finally {
+      setCaptchaLoading(false)
     }
   }
 
@@ -150,6 +240,70 @@ export default function ProveedorCreatePage() {
 
   return (
     <div className="min-h-screen">
+      {/* Diálogo de CAPTCHA SENIAT */}
+      <Dialog open={captchaOpen} onOpenChange={(v) => { if (!captchaLoading) setCaptchaOpen(v) }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Verificación SENIAT</DialogTitle>
+            <DialogDescription>
+              Ingresa el código que aparece en la imagen para consultar el RIF{" "}
+              <span className="font-semibold text-foreground">{rif}</span> en el portal del SENIAT.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-4 py-2">
+            {/* Imagen del CAPTCHA */}
+            <div className="flex items-center justify-center rounded-lg border bg-muted p-3">
+              {captchaEndpoint ? (
+                <img
+                  key={captchaImgKey}
+                  src={`${captchaEndpoint}?t=${captchaImgKey}`}
+                  alt="CAPTCHA SENIAT"
+                  className="max-h-20 object-contain"
+                  style={{ imageRendering: "pixelated" }}
+                />
+              ) : (
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              )}
+            </div>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              className="self-end gap-1 text-xs text-muted-foreground"
+              onClick={() => setCaptchaImgKey((k) => k + 1)}
+              disabled={captchaLoading}
+            >
+              <RefreshCw className="h-3 w-3" /> No veo bien la imagen
+            </Button>
+
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="captcha-input">Código del CAPTCHA</Label>
+              <Input
+                id="captcha-input"
+                autoFocus
+                autoComplete="off"
+                placeholder="Escribe el código aquí"
+                value={captchaInput}
+                onChange={(e) => setCaptchaInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && submitCaptcha()}
+                disabled={captchaLoading}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCaptchaOpen(false)} disabled={captchaLoading}>
+              Cancelar
+            </Button>
+            <Button onClick={submitCaptcha} disabled={captchaLoading || !captchaInput.trim()}>
+              {captchaLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Consultar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Encabezado pegajoso */}
       <div className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur">
         <div className="mx-auto w-full max-w-7xl px-4 py-3">
@@ -223,7 +377,10 @@ export default function ProveedorCreatePage() {
 
                   <div className="sm:col-span-6">
                     <Label>Tipo de contribuyente</Label>
-                    <Select onValueChange={(v) => setValue("tipoContribuyente", v, { shouldDirty: true })}>
+                    <Select
+                      value={tipoContribuyente}
+                      onValueChange={(v) => setValue("tipoContribuyente", v, { shouldDirty: true })}
+                    >
                       <SelectTrigger className="mt-2">
                         <SelectValue placeholder="Selecciona" />
                       </SelectTrigger>
@@ -322,7 +479,7 @@ export default function ProveedorCreatePage() {
                       </div>
                       <div>
                         <Label>Retención de IVA</Label>
-                        <Select defaultValue="100%" onValueChange={(v) => setValue("retencionIVA", v, { shouldDirty: true })}>
+                        <Select value={retencionIVA} onValueChange={(v) => setValue("retencionIVA", v, { shouldDirty: true })}>
                           <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="100%">100%</SelectItem>

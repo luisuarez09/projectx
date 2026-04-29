@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -144,6 +145,8 @@ function useSortedFilteredData({ data, query, type, status, period, sortKey, sor
 }
 
 export default function ComprasIndex() {
+  const navigate = useNavigate()
+
   // Estado filtros
   const [period, setPeriod] = useState("2025-08")
   const [type, setType] = useState("todos")
@@ -198,7 +201,9 @@ export default function ComprasIndex() {
           <div className="flex flex-col gap-3">
             {/* Acciones principales */}
             <div className="flex flex-wrap items-center gap-2">
-              <RegisterDocumentDialog onSaved={handleSaved} />
+              <Button className="gap-2" onClick={() => navigate("/facturas/compras/new")}>
+                <Plus className="h-4 w-4" /> Registrar documento
+              </Button>
               <Button
                 variant="outline"
                 className="gap-2"

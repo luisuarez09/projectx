@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react"
+import { useMemo, useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -11,7 +11,8 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import { Toaster, toast } from "sonner"
-import { ArrowLeft, Save, FilePlus2, UserPlus, Trash2, Plus, Search, Loader2, Check, X } from "lucide-react"
+import { ArrowLeft, Save, FilePlus2, UserPlus, Trash2, Plus, Search, Loader2, Check, X, CalendarIcon } from "lucide-react"
+import { Calendar } from "@/components/ui/calendar"
 
 /**
  * Incluye:
@@ -45,11 +46,75 @@ const SUPPLIERS_INIT = [
 function findAccountById(id) { return COA.find((a) => a.id === id) }
 function accountLabel(a) { return a ? `${a.code} — ${a.name}` : "" }
 function fix2(n) { return (Number(n) || 0).toFixed(2) }
-function normalize(v) { return v.replace(/,/g, ".").replace(/[^0-9.]/g, "") }
+function normalize(v) {
+  if (!v) return "";
+  let str = String(v);
+  if (str.includes(',') && str.includes('.')) {
+      str = str.replace(/\./g, "").replace(/,/g, ".");
+  } else if (str.includes(',')) {
+      str = str.replace(/,/g, ".");
+  }
+  let clean = str.replace(/[^0-9.]/g, "");
+  let parts = clean.split(".");
+  if (parts.length > 2) clean = parts[0] + "." + parts.slice(1).join("");
+  return clean;
+}
+
+function formatMoney(n) {
+  const num = Number(n);
+  if (isNaN(num)) return "0,00";
+  return new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
+}
+
+function MoneyInput({ value, onChange, readOnly, ...props }) {
+  const [localValue, setLocalValue] = useState("");
+  const [isFocused, setIsFocused] = useState(false);
+
+  useEffect(() => {
+    if (!isFocused) {
+      setLocalValue(value ? formatMoney(value) : "");
+    } else {
+      setLocalValue(value ? String(value).replace(".", ",") : "");
+    }
+  }, [value, isFocused]);
+
+  function handleChange(e) {
+    const raw = e.target.value;
+    setLocalValue(raw);
+    if (onChange) onChange(normalize(raw));
+  }
+
+  return (
+    <Input
+      {...props}
+      readOnly={readOnly}
+      value={readOnly ? formatMoney(value) : (isFocused ? localValue : (value ? formatMoney(value) : ""))}
+      onFocus={() => setIsFocused(true)}
+      onBlur={() => setIsFocused(false)}
+      onChange={handleChange}
+    />
+  );
+}
 
 // Conversión de fechas
-function toISOFromDDMMYYYY(s) { const [dd, mm, yyyy] = (s || "").split("/"); if (!dd || !mm || !yyyy) return new Date().toISOString().slice(0, 10); return `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}` }
+function toISOFromDDMMYYYY(s) { const [dd, mm, yyyy] = (s || "").split("/"); if (!dd || !mm || !yyyy || yyyy.length !== 4) return new Date().toISOString().slice(0, 10); return `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}` }
 function toDDMMYYYYFromISO(iso) { const d = new Date(iso); const dd = String(d.getDate()).padStart(2, "0"); const mm = String(d.getMonth() + 1).padStart(2, "0"); const yyyy = d.getFullYear(); return `${dd}/${mm}/${yyyy}` }
+function parseDateForCalendar(iso) { const [yyyy, mm, dd] = iso.split("-"); return new Date(yyyy, mm - 1, dd) }
+
+function handleDateTextChange(e, setDisplay, setISO) {
+  let val = e.target.value.replace(/\D/g, "");
+  if (val.length > 8) val = val.slice(0, 8);
+  
+  let formatted = val;
+  if (val.length > 2) formatted = val.slice(0, 2) + "/" + val.slice(2);
+  if (val.length > 4) formatted = formatted.slice(0, 5) + "/" + val.slice(4);
+  
+  setDisplay(formatted);
+  if (formatted.length === 10) {
+    const iso = toISOFromDDMMYYYY(formatted);
+    setISO(iso);
+  }
+}
 
 export default function ComprasInvoiceCreate({ onSaved, onCancel }) {
   const [suppliers, setSuppliers] = useState(SUPPLIERS_INIT)
@@ -172,7 +237,34 @@ export default function ComprasInvoiceCreate({ onSaved, onCancel }) {
                 <Input value={number} onChange={(e) => setNumber(e.target.value)} placeholder="Ej: F-000148" />
               </Field>
               <Field label="Fecha (DD/MM/AAAA)">
-                <Input value={dateDisplay} onChange={(e) => { const val = e.target.value; setDateDisplay(val); setDateISO(toISOFromDDMMYYYY(val)) }} placeholder="31/08/2025" />
+                <Popover>
+                  <div className="relative">
+                    <Input 
+                      value={dateDisplay} 
+                      onChange={(e) => handleDateTextChange(e, setDateDisplay, setDateISO)} 
+                      placeholder="DD/MM/AAAA" 
+                    />
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-muted-foreground" tabIndex="-1">
+                        <CalendarIcon className="h-4 w-4" />
+                      </Button>
+                    </PopoverTrigger>
+                  </div>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={parseDateForCalendar(dateISO)}
+                      onSelect={(date) => {
+                        if (date) {
+                          const iso = date.toISOString().slice(0, 10);
+                          setDateISO(iso);
+                          setDateDisplay(toDDMMYYYYFromISO(iso));
+                        }
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </Field>
               <Field label="Moneda">
                 <Select value={currency} onValueChange={setCurrency}>
@@ -194,13 +286,13 @@ export default function ComprasInvoiceCreate({ onSaved, onCancel }) {
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
                 <Field label="Base imponible">
-                  <Input inputMode="decimal" value={base} onChange={(e) => setBase(normalize(e.target.value))} placeholder="0.00" />
+                  <MoneyInput inputMode="decimal" value={base} onChange={(v) => setBase(v)} placeholder="0,00" />
                 </Field>
                 <Field label="Exento">
-                  <Input inputMode="decimal" value={exempt} onChange={(e) => setExempt(normalize(e.target.value))} placeholder="0.00" />
+                  <MoneyInput inputMode="decimal" value={exempt} onChange={(v) => setExempt(v)} placeholder="0,00" />
                 </Field>
                 <Field label="IVA (16%)">
-                  <Input value={fix2(tax)} readOnly />
+                  <MoneyInput value={tax} readOnly />
                 </Field>
                 <div className="flex items-end gap-2">
                   <div className="flex items-center gap-2">
@@ -209,7 +301,7 @@ export default function ComprasInvoiceCreate({ onSaved, onCancel }) {
                   </div>
                 </div>
                 <Field label="Total factura">
-                  <Input value={fix2(total)} readOnly />
+                  <MoneyInput value={total} readOnly />
                 </Field>
               </div>
             </CardContent>
@@ -234,7 +326,7 @@ export default function ComprasInvoiceCreate({ onSaved, onCancel }) {
                       <AccountPicker value={l.accountId} onChange={(val) => updateLine(l.id, { accountId: val })} />
                     </div>
                     <div className="sm:col-span-3">
-                      <Input inputMode="decimal" className="text-right" value={l.amount} onChange={(e) => updateLine(l.id, { amount: normalize(e.target.value) })} placeholder="0.00" />
+                      <MoneyInput inputMode="decimal" className="text-right" value={l.amount} onChange={(v) => updateLine(l.id, { amount: v })} placeholder="0,00" />
                     </div>
                     <div className="sm:col-span-1 flex justify-end">
                       <Button variant="ghost" size="icon" onClick={() => removeLine(l.id)} title="Eliminar línea">
@@ -259,11 +351,11 @@ export default function ComprasInvoiceCreate({ onSaved, onCancel }) {
 
                 {/* Verificación partida doble */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
-                  <div>Débitos: <strong>{fix2(balance.debit)}</strong></div>
-                  <div>Créditos: <strong>{fix2(balance.credit)}</strong></div>
+                  <div>Débitos: <strong>{formatMoney(balance.debit)}</strong></div>
+                  <div>Créditos: <strong>{formatMoney(balance.credit)}</strong></div>
                   <div className="sm:col-span-2 text-right">
                     {unbalanced ? (
-                      <span className="text-amber-700">Descuadre: {fix2(balance.debit - balance.credit)}</span>
+                      <span className="text-amber-700">Descuadre: {formatMoney(balance.debit - balance.credit)}</span>
                     ) : (
                       <span className="text-emerald-700">Cuadrado</span>
                     )}
@@ -308,9 +400,9 @@ export default function ComprasInvoiceCreate({ onSaved, onCancel }) {
               <div className="text-muted-foreground"><strong>Fecha:</strong> {dateDisplay}</div>
               <div className="text-muted-foreground"><strong>Moneda:</strong> {currency}</div>
               <Separator className="my-2" />
-              <div><strong>Total:</strong> {fix2(total)}</div>
-              <div className="text-muted-foreground">Base: {fix2(baseNum)} · Exento: {fix2(exemptNum)}</div>
-              <div className="text-muted-foreground">IVA 16%: {fix2(tax)} {noCreditoFiscal ? "(no deducible)" : "(crédito fiscal)"}</div>
+              <div><strong>Total:</strong> {formatMoney(total)}</div>
+              <div className="text-muted-foreground">Base: {formatMoney(baseNum)} · Exento: {formatMoney(exemptNum)}</div>
+              <div className="text-muted-foreground">IVA 16%: {formatMoney(tax)} {noCreditoFiscal ? "(no deducible)" : "(crédito fiscal)"}</div>
             </CardContent>
           </Card>
         </div>
@@ -327,71 +419,83 @@ export default function ComprasInvoiceCreate({ onSaved, onCancel }) {
 }
 
 function SupplierPicker({ suppliers, setSuppliers, query, setQuery, value, onChange }) {
+  const [open, setOpen] = useState(false)
   const [isSearching, setIsSearching] = useState(false)
   const [rifValid, setRifValid] = useState(null)
+  const containerRef = useRef(null)
 
-  const matches = useMemo(() => { const list = suppliers || []; if (!query) return list; const q = query.toLowerCase(); return list.filter((s) => s.name.toLowerCase().includes(q) || s.rif.toLowerCase().includes(q)) }, [query, suppliers])
+  const matches = useMemo(() => {
+    const list = suppliers || []
+    if (!query) return list
+    const q = query.toLowerCase()
+    return list.filter((s) => s.name.toLowerCase().includes(q) || s.rif.toLowerCase().includes(q))
+  }, [query, suppliers])
+
   const showCreate = query && matches.length === 0
 
-  async function handleLookup() {
-    const rif = (value ? value.rif : query || "").toUpperCase().replace(/[^A-Z0-9]/g, "")
-    if (!rif) return toast.error("Introduce un RIF para consultar")
-    const rifRegex = /^[VJEGP][0-9]{9}$/
-    if (!rifRegex.test(rif)) { setRifValid(false); toast.error("Formato de RIF inválido. Ej: J000000001"); return }
-    setIsSearching(true); setRifValid(null)
-    try {
-      const data = await mockSeniatLookup(rif)
-      if (!data) { setRifValid(false); toast.error("No se encontró información en SENIAT (mock)"); return }
-      const newSupplier = { id: crypto.randomUUID(), rif, name: data.name, address: data.address, taxpayerType: data.taxpayerType, vatRetention: 75, defaultAccountId: "" }
-      setSuppliers((prev) => [...prev, newSupplier])
-      onChange(newSupplier)
-      setQuery("")
-      setRifValid(true)
-      toast.success("Proveedor cargado desde SENIAT (mock)")
-    } catch (e) {
-      setRifValid(false)
-      toast.error("Error consultando SENIAT (mock)")
-    } finally { setIsSearching(false) }
+  // Cerrar al hacer clic fuera del componente
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  function handleSelect(s) {
+    onChange(s)
+    setOpen(false)
   }
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <div className="flex gap-2 items-center">
-          <div className="relative flex-1">
-            <Input
-              className="pr-10"
-              value={value ? `${value.name} (${value.rif})` : query}
-              onChange={(e) => { onChange(null); setQuery(e.target.value) }}
-              placeholder="Buscar por nombre o RIF (ej.: J000000001)"
-            />
-            {isSearching && (<Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />)}
-            {!isSearching && rifValid === true && (<Check className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />)}
-            {!isSearching && rifValid === false && (<X className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-red-500" />)}
+    <div ref={containerRef} className="flex gap-2 items-center">
+      {/* Input con dropdown alineado */}
+      <div className="relative flex-1">
+        <Input
+          className="pr-10"
+          value={value ? `${value.name} (${value.rif})` : query}
+          onFocus={() => setOpen(true)}
+          onChange={(e) => { onChange(null); setQuery(e.target.value); setOpen(true) }}
+          placeholder="Buscar por nombre o RIF (ej.: J000000001)"
+          autoComplete="off"
+        />
+        {isSearching && (<Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />)}
+        {!isSearching && rifValid === true && (<Check className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />)}
+        {!isSearching && rifValid === false && (<X className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-red-500" />)}
+
+        {/* Dropdown alineado al input */}
+        {open && (
+          <div className="absolute z-50 top-full mt-1 left-0 right-0 bg-popover border rounded-md shadow-md p-2 flex flex-col gap-1 max-h-64 overflow-y-auto">
+            {matches.map((s) => (
+              <button
+                key={s.id}
+                onMouseDown={(e) => { e.preventDefault(); handleSelect(s) }}
+                className="text-left px-3 py-2 rounded text-sm hover:bg-muted transition-colors"
+              >
+                {s.name} <span className="text-muted-foreground text-xs">({s.rif})</span>
+              </button>
+            ))}
+            {showCreate && (
+              <div onMouseDown={(e) => e.preventDefault()}>
+                <SupplierCreateButton
+                  inlineQuery={query}
+                  onCreate={(s) => { setSuppliers((prev) => [...prev, s]); handleSelect(s) }}
+                />
+              </div>
+            )}
+            {!showCreate && matches.length === 0 && (
+              <div className="text-sm text-muted-foreground px-3 py-2">Escribe para buscar o crear</div>
+            )}
           </div>
-          <Button type="button" variant="outline" size="sm" onClick={handleLookup} title="Buscar en SENIAT">
-            <Search className="h-4 w-4" />
-          </Button>
-        </div>
-      </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-2">
-        <div className="flex flex-col gap-2 max-h-64 overflow-auto">
-          {matches.map((s) => (
-            <button key={s.id} onClick={() => onChange(s)} className="text-left px-2 py-1 rounded hover:bg-muted">
-              {s.name} <span className="text-muted-foreground">({s.rif})</span>
-            </button>
-          ))}
-          {showCreate && (
-            <SupplierCreateButton inlineQuery={query} onCreate={(s) => { setSuppliers((prev) => [...prev, s]); onChange(s) }} />
-          )}
-          {!showCreate && matches.length === 0 && (
-            <div className="text-sm text-muted-foreground px-2">Escribe para buscar o crear</div>
-          )}
-        </div>
-      </PopoverContent>
-    </Popover>
+        )}
+      </div>
+    </div>
   )
 }
+
+const SENIAT_API = "/api/tools/seniat"
 
 function SupplierCreateButton({ onCreate, inlineQuery }) {
   const [open, setOpen] = useState(false)
@@ -401,58 +505,236 @@ function SupplierCreateButton({ onCreate, inlineQuery }) {
   const [taxpayerType, setTaxpayerType] = useState("Ordinario")
   const [vatRetention, setVatRetention] = useState(75)
   const [defaultAccountId, setDefaultAccountId] = useState("")
-  const [isLookingUp, setIsLookingUp] = useState(false)
-  const [rifValid, setRifValid] = useState(null)
+
+  // SENIAT CAPTCHA flow
+  const [seniatStep, setSeniatStep] = useState("idle") // idle | loading-captcha | awaiting-captcha | looking-up | done | error
+  const [sessionId, setSessionId] = useState(null)
+  const [captchaUrl, setCaptchaUrl] = useState(null)
+  const [captchaCode, setCaptchaCode] = useState("")
+  const [captchaError, setCaptchaError] = useState("")
+  const [rifValid, setRifValid] = useState(null) // null | true | false
+
+  function resetSeniat() {
+    setSeniatStep("idle"); setSessionId(null); setCaptchaUrl(null)
+    setCaptchaCode(""); setCaptchaError(""); setRifValid(null)
+  }
+
+  // Paso 1: pedir sesión + captcha al backend
+  async function startSeniatLookup() {
+    const rifRegex = /^[VJEGP][0-9]{9}$/
+    const clean = rif.toUpperCase().replace(/[^A-Z0-9]/g, "")
+    if (!rifRegex.test(clean)) {
+      setRifValid(false)
+      toast.error("Formato de RIF inválido. Ej: J000000001")
+      return
+    }
+    setRifValid(null)
+    setSeniatStep("loading-captcha")
+    setCaptchaError("")
+    try {
+      const r = await fetch(`${SENIAT_API}/lookup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ init: true }),
+      })
+      if (!r.ok) throw new Error(await r.text())
+      const data = await r.json()
+      setSessionId(data.sessionId)
+      // Usar el proxy de Vite para la imagen del captcha
+      setCaptchaUrl(data.captchaEndpoint)
+      setSeniatStep("awaiting-captcha")
+    } catch (e) {
+      console.error(e)
+      setCaptchaError("No se pudo conectar con la API. ¿Está corriendo el servidor?")
+      setSeniatStep("error")
+    }
+  }
+
+  // Paso 2: enviar RIF + captcha y recibir datos
+  async function submitCaptcha() {
+    if (!captchaCode.trim()) { setCaptchaError("Ingresa el código de seguridad"); return }
+    setSeniatStep("looking-up")
+    setCaptchaError("")
+    try {
+      const clean = rif.toUpperCase().replace(/[^A-Z0-9]/g, "")
+      const r = await fetch(`${SENIAT_API}/lookup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, rif: clean, captcha: captchaCode.trim() }),
+      })
+      const data = await r.json()
+      if (!r.ok) {
+        const msg = data?.error || "Error consultando SENIAT"
+        if (/captcha/i.test(msg)) {
+          setCaptchaError("Código incorrecto. Vuelve a intentarlo.")
+          setCaptchaUrl(`${data.captchaEndpoint}?t=${Date.now()}`)
+          setCaptchaCode("")
+          setSeniatStep("awaiting-captcha")
+        } else if (r.status === 404) {
+          setCaptchaError("RIF no encontrado en SENIAT.")
+          setSeniatStep("error")
+          setRifValid(false)
+        } else {
+          setCaptchaError(msg)
+          setSeniatStep("error")
+        }
+        return
+      }
+      // DEBUG: ver respuesta completa en consola del navegador
+      console.log("[SENIAT response]", data)
+
+      // Exito: aplicar SIEMPRE todos los campos (sin if-guards que puedan omitirlos)
+      setName(data.legalName || "")
+      setTaxpayerType(data.contribType === "Especial" ? "Especial" : "Ordinario")
+      setVatRetention(data.vatRetention ?? 100)
+      setRifValid(true)
+      setSeniatStep("done")
+
+      toast.success("Consulta realizada al SENIAT exitosamente")
+    } catch (e) {
+      console.error(e)
+      setCaptchaError("Error de red. Intenta de nuevo.")
+      setSeniatStep("error")
+    }
+  }
 
   function handleCreate() {
     if (!name || !rif) return toast.error("RIF y Nombre son obligatorios")
-    const newSupplier = { id: crypto.randomUUID(), rif, name, address, taxpayerType, vatRetention, defaultAccountId }
+    const newSupplier = {
+      id: crypto.randomUUID(),
+      rif: rif.toUpperCase().replace(/[^A-Z0-9]/g, ""),
+      name, address, taxpayerType, vatRetention, defaultAccountId
+    }
     onCreate?.(newSupplier)
     setOpen(false)
   }
 
-  async function handleLookupSENIAT() {
-    const rifRegex = /^[VJEGP][0-9]{9}$/
-    if (!rifRegex.test(rif)) { setRifValid(false); toast.error("Formato de RIF inválido. Ej: J000000001"); return }
-    setIsLookingUp(true); setRifValid(null)
-    try {
-      // Simulación de búsqueda SENIAT: reemplazar por fetch real
-      await new Promise((res) => setTimeout(res, 1500))
-      setName(name || "Proveedor de Ejemplo C.A.")
-      setTaxpayerType("Especial")
-      setAddress(address || "Av. Principal #123, Caracas")
-      setRifValid(true)
-      toast.success("Datos obtenidos del SENIAT correctamente")
-    } catch (err) {
-      setRifValid(false)
-      toast.error("No se pudo obtener la información del SENIAT")
-    } finally { setIsLookingUp(false) }
+  function handleOpenChange(v) {
+    setOpen(v)
+    if (!v) resetSeniat()
   }
 
+  const isLoadingCaptcha = seniatStep === "loading-captcha"
+  const isLookingUp = seniatStep === "looking-up"
+  const showCaptchaBox = seniatStep === "awaiting-captcha" || isLookingUp
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="outline" className="gap-2"><UserPlus className="h-4 w-4"/> Nuevo</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Nuevo proveedor</DialogTitle>
-          <DialogDescription>Registra los datos básicos del proveedor</DialogDescription>
+          <DialogDescription>
+            Ingresa el RIF y consulta el SENIAT para autocompletar el nombre legal.
+          </DialogDescription>
         </DialogHeader>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* RIF + botón SENIAT */}
           <Field label="RIF">
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
-                <Input id="rif" placeholder="Ej: J000000001" value={rif} onChange={(e) => setRif(e.target.value.toUpperCase())} className="pr-10" />
-                {isLookingUp && (<Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />)}
-                {!isLookingUp && rifValid === true && (<Check className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />)}
-                {!isLookingUp && rifValid === false && (<X className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-red-500" />)}
+                <Input
+                  id="rif"
+                  placeholder="Ej: J000000001"
+                  value={rif}
+                  onChange={(e) => { setRif(e.target.value.toUpperCase()); resetSeniat() }}
+                  className="pr-10"
+                  disabled={isLoadingCaptcha || isLookingUp}
+                />
+                {(isLoadingCaptcha || isLookingUp) && (
+                  <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
+                )}
+                {!isLoadingCaptcha && !isLookingUp && rifValid === true && (
+                  <Check className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />
+                )}
+                {!isLoadingCaptcha && !isLookingUp && rifValid === false && (
+                  <X className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-red-500" />
+                )}
               </div>
-              <Button type="button" onClick={handleLookupSENIAT} disabled={isLookingUp} variant="secondary">Buscar</Button>
+              <Button
+                type="button"
+                onClick={seniatStep === "idle" || seniatStep === "done" || seniatStep === "error" ? startSeniatLookup : undefined}
+                disabled={isLoadingCaptcha || isLookingUp}
+                variant="secondary"
+                className="gap-1 whitespace-nowrap"
+              >
+                {isLoadingCaptcha ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                Buscar SENIAT
+              </Button>
             </div>
           </Field>
-          <Field label="Nombre" ><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre o Razón Social" /></Field>
-          <Field label="Dirección" >
+
+          {/* Nombre */}
+          <Field label="Nombre">
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre o Razón Social" />
+          </Field>
+
+          {/* CAPTCHA inline — ocupa las 2 columnas */}
+          {showCaptchaBox && (
+            <div className="sm:col-span-2 rounded-lg border bg-muted/40 p-4 flex flex-col gap-3">
+              <p className="text-sm font-medium text-foreground">
+                🔐 Verificación SENIAT — ingresa el código de la imagen:
+              </p>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                {/* Imagen del captcha */}
+                <div className="flex flex-col items-center gap-1">
+                  {captchaUrl && (
+                    <img
+                      src={captchaUrl}
+                      alt="Código de seguridad SENIAT"
+                      className="h-14 rounded border bg-white object-contain"
+                      onError={() => setCaptchaError("No se pudo cargar la imagen del SENIAT.")}
+                    />
+                  )}
+                  <button
+                    type="button"
+                    className="text-xs text-muted-foreground underline hover:text-foreground"
+                    onClick={startSeniatLookup}
+                  >
+                    ↻ Nuevo código
+                  </button>
+                </div>
+                {/* Input del código */}
+                <div className="flex flex-1 gap-2 w-full sm:w-auto">
+                  <Input
+                    placeholder="Código de seguridad"
+                    value={captchaCode}
+                    onChange={(e) => { setCaptchaCode(e.target.value); setCaptchaError("") }}
+                    onKeyDown={(e) => { if (e.key === "Enter") submitCaptcha() }}
+                    disabled={isLookingUp}
+                    className="flex-1"
+                    autoFocus
+                  />
+                  <Button
+                    type="button"
+                    onClick={submitCaptcha}
+                    disabled={isLookingUp || !captchaCode.trim()}
+                    className="gap-1"
+                  >
+                    {isLookingUp ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                    Verificar
+                  </Button>
+                </div>
+              </div>
+              {captchaError && (
+                <p className="text-sm text-destructive">{captchaError}</p>
+              )}
+            </div>
+          )}
+
+          {/* Error sin captcha */}
+          {seniatStep === "error" && !showCaptchaBox && captchaError && (
+            <div className="sm:col-span-2 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded px-3 py-2">
+              {captchaError}{" "}
+              <button className="underline" onClick={startSeniatLookup}>Reintentar</button>
+            </div>
+          )}
+
+          {/* Resto de campos */}
+          <Field label="Dirección">
             <Textarea id="direccion" rows={2} className="min-h-[72px] resize-y" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Dirección completa del proveedor" />
           </Field>
           <Field label="Tipo de contribuyente">
@@ -477,9 +759,10 @@ function SupplierCreateButton({ onCreate, inlineQuery }) {
             <AccountPicker typeFilter="expense" value={defaultAccountId} onChange={setDefaultAccountId} />
           </Field>
         </div>
+
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-          <Button onClick={handleCreate}>Crear</Button>
+          <Button variant="outline" onClick={() => handleOpenChange(false)}>Cancelar</Button>
+          <Button onClick={handleCreate}>Crear proveedor</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -488,27 +771,117 @@ function SupplierCreateButton({ onCreate, inlineQuery }) {
 
 function AccountPicker({ value, onChange, typeFilter }) {
   const [q, setQ] = useState("")
-  const filtered = useMemo(() => { const byType = typeFilter ? COA.filter((a) => a.type === typeFilter) : COA; if (!q) return byType; const s = q.toLowerCase(); return byType.filter((a) => a.code.toLowerCase().includes(s) || a.name.toLowerCase().includes(s)) }, [q, typeFilter])
+  const [open, setOpen] = useState(false)
+  const [focusedIndex, setFocusedIndex] = useState(-1)
+  const containerRef = useRef(null)
+  const listRef = useRef(null)
+
+  const filtered = useMemo(() => {
+    const byType = typeFilter ? COA.filter((a) => a.type === typeFilter) : COA;
+    if (!q) return byType;
+    const s = q.toLowerCase();
+    // Búsqueda por nombre o código de cuenta
+    return byType.filter((a) => a.code.toLowerCase().includes(s) || a.name.toLowerCase().includes(s));
+  }, [q, typeFilter]);
+
   const selected = findAccountById(value)
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false)
+        setQ("")
+        setFocusedIndex(-1)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  useEffect(() => {
+    setFocusedIndex(-1)
+  }, [q])
+
+  useEffect(() => {
+    if (focusedIndex >= 0 && listRef.current) {
+      const el = listRef.current.children[focusedIndex]
+      if (el) {
+        el.scrollIntoView({ block: "nearest" })
+      }
+    }
+  }, [focusedIndex])
+
+  function handleSelect(id) {
+    onChange(id)
+    setQ("")
+    setOpen(false)
+    setFocusedIndex(-1)
+  }
+
+  function handleKeyDown(e) {
+    if (!open) {
+      if (e.key === "ArrowDown" || e.key === "Enter") {
+        setOpen(true)
+      }
+      return
+    }
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault()
+      setFocusedIndex(prev => (prev < filtered.length - 1 ? prev + 1 : prev))
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault()
+      setFocusedIndex(prev => (prev > 0 ? prev - 1 : prev))
+    } else if (e.key === "Enter") {
+      e.preventDefault()
+      if (focusedIndex >= 0 && focusedIndex < filtered.length) {
+        handleSelect(filtered[focusedIndex].id)
+      } else if (filtered.length === 1) {
+        handleSelect(filtered[0].id)
+      }
+    } else if (e.key === "Escape") {
+      e.preventDefault()
+      setOpen(false)
+    }
+  }
+
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <div className="flex w-full items-center gap-2">
-          <Input value={selected ? accountLabel(selected) : q} onChange={(e) => { setQ(e.target.value); onChange("") }} placeholder="Código o nombre de cuenta" />
-          <Search className="h-4 w-4 text-muted-foreground" />
-        </div>
-      </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-2">
-        <div className="flex flex-col max-h-64 overflow-auto">
-          {filtered.map((a) => (
-            <button key={a.id} onClick={() => onChange(a.id)} className="text-left px-2 py-1 rounded hover:bg-muted">
-              {a.code} — {a.name}
+    <div ref={containerRef} className="relative w-full">
+      <div className="relative">
+        <Input 
+          value={open ? q : (selected ? accountLabel(selected) : q)} 
+          onFocus={() => { setOpen(true); setQ(""); }}
+          onKeyDown={handleKeyDown}
+          onChange={(e) => { 
+            setQ(e.target.value); 
+            setOpen(true); 
+            if (selected) onChange(""); 
+          }} 
+          placeholder={selected ? accountLabel(selected) : "Código o nombre de cuenta"}
+          className="pr-8" 
+          autoComplete="off"
+        />
+        <Search className="absolute right-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+      </div>
+      
+      {open && (
+        <div ref={listRef} className="absolute z-50 top-full mt-1 left-0 right-0 bg-popover border rounded-md shadow-md p-2 flex flex-col gap-1 max-h-64 overflow-y-auto">
+          {filtered.map((a, i) => (
+            <button 
+              key={a.id} 
+              onMouseDown={(e) => { e.preventDefault(); handleSelect(a.id) }} 
+              className={`text-left px-3 py-2 rounded text-sm transition-colors flex flex-col sm:flex-row sm:items-center sm:gap-2 ${i === focusedIndex ? 'bg-accent text-accent-foreground' : 'hover:bg-muted'}`}
+            >
+              <span className="font-medium whitespace-nowrap">{a.code}</span>
+              <span className="text-muted-foreground sm:border-l sm:pl-2">{a.name}</span>
             </button>
           ))}
-          {filtered.length === 0 && <div className="text-sm text-muted-foreground px-2">Sin resultados</div>}
+          {filtered.length === 0 && (
+            <div className="text-sm text-muted-foreground px-3 py-2">Sin resultados</div>
+          )}
         </div>
-      </PopoverContent>
-    </Popover>
+      )}
+    </div>
   )
 }
 
@@ -521,17 +894,17 @@ function ensureSystemLines(lines, { tax, total, noCreditoFiscal }) {
   const vatAcc = noCreditoFiscal ? COA.find((a) => a.type === "expense_nd_vat") : COA.find((a) => a.type === "tax_credit")
   const payAcc = COA.find((a) => a.type === "payable")
   const newLines = [...lines]
-  if (!newLines.some((l) => findAccountById(l.accountId)?.id === vatAcc?.id)) newLines.push(makeLine({ accountId: vatAcc?.id, amount: fix2(tax || 0) }))
-  if (!newLines.some((l) => findAccountById(l.accountId)?.id === payAcc?.id)) newLines.push(makeLine({ accountId: payAcc?.id, amount: fix2(total || 0) }))
+  if (!newLines.some((l) => findAccountById(l.accountId)?.id === vatAcc?.id)) newLines.push(makeLine({ accountId: vatAcc?.id, amount: (Number(tax) || 0).toFixed(2) }))
+  if (!newLines.some((l) => findAccountById(l.accountId)?.id === payAcc?.id)) newLines.push(makeLine({ accountId: payAcc?.id, amount: (Number(total) || 0).toFixed(2) }))
   return syncSystemLines(newLines, { tax, total, noCreditoFiscal })
 }
 
 function syncSystemLines(lines, { tax, total, noCreditoFiscal }) {
   const vatAcc = noCreditoFiscal ? COA.find((a) => a.type === "expense_nd_vat") : COA.find((a) => a.type === "tax_credit")
   const payAcc = COA.find((a) => a.type === "payable")
-  let changed = lines.map((l) => { const acc = findAccountById(l.accountId); if (!acc) return l; if (acc.id === vatAcc?.id) return { ...l, amount: fix2(tax) }; if (acc.id === payAcc?.id) return { ...l, amount: fix2(total) }; return l })
+  let changed = lines.map((l) => { const acc = findAccountById(l.accountId); if (!acc) return l; if (acc.id === vatAcc?.id) return { ...l, amount: (Number(tax) || 0).toFixed(2) }; if (acc.id === payAcc?.id) return { ...l, amount: (Number(total) || 0).toFixed(2) }; return l })
   const hasVat = changed.some((l) => findAccountById(l.accountId)?.id === vatAcc?.id)
-  if (!hasVat) { changed = changed.filter((l) => { const t = findAccountById(l.accountId)?.type; return t !== "tax_credit" && t !== "expense_nd_vat" }); changed.push(makeLine({ accountId: vatAcc?.id, amount: fix2(tax) })) }
+  if (!hasVat) { changed = changed.filter((l) => { const t = findAccountById(l.accountId)?.type; return t !== "tax_credit" && t !== "expense_nd_vat" }); changed.push(makeLine({ accountId: vatAcc?.id, amount: (Number(tax) || 0).toFixed(2) })) }
   return changed
 }
 
@@ -539,16 +912,4 @@ function autoFillFirstExpense(lines, accountId) { const idx = lines.findIndex((l
 
 function computeBalance(lines) { return lines.reduce((acc, l) => { const a = findAccountById(l.accountId); const amt = Number(l.amount) || 0; if (!a) return acc; if (a.nature === "debit") acc.debit += amt; else acc.credit += amt; return acc }, { debit: 0, credit: 0 }) }
 
-// Mock de consulta SENIAT (reemplazar por integración real)
-async function mockSeniatLookup(rif) {
-  // Simula latencia
-  await new Promise((r) => setTimeout(r, 700))
-  const clean = String(rif).replace(/[^A-Za-z0-9]/g, "").toUpperCase()
-  if (!clean) return null
-  return {
-    name: `Proveedor ${clean.substring(0, 4)}`,
-    taxpayerType: clean.endsWith("0") ? "Especial" : "Ordinario",
-    activity: "Comercio al por mayor (mock)",
-    address: "Dirección SENIAT simulada (mock)",
-  }
-}
+// Funciones de utilidad eliminadas

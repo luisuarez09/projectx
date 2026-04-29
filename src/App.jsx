@@ -7,6 +7,7 @@ import CalculadoraSaren from './pages/CalculadoraSaren';
 import CalculadoraReconversion from './pages/CalcuadoraReconversion';
 import Clients from './pages/clients/clients';
 import EstimateNew from './pages/estimates-new';
+import Login from './pages/login';
 
 function App() {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -23,6 +24,7 @@ function App() {
       <main className="p-4">
         <Routes>
           <Route path="/" element={<CalculadoraSaren />} />
+          <Route path="/login" element={<Login />} />
           <Route path="/calculadora-saren" element={<CalculadoraSaren />} />
           <Route path="/calculadora-reconversion" element={<CalculadoraReconversion />} />
           

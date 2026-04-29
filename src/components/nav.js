@@ -64,6 +64,7 @@ export const navSections = [
       { title: "Resumen fiscal", url: "/reports/taxes", icon: LineChart },
       { title: "Libros", url: "/reports/books", icon: Book },
       { title: "Archivos", url: "/files", icon: FolderOpen },
+      { title: "Calculadora", url: "/CalculadoraReconversion", icon: FolderOpen },
     ],
   },
   {

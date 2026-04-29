@@ -21,10 +21,6 @@ app.use("/api/tools/seniat", seniatRouter)
 
 // ===== CLIENTS CRUD =====
 
-app.listen(process.env.PORT || 3001, () => {
-  console.log("API ready")
-})
-
 // Listar
 app.get("/api/clients", async (req, res) => {
   const q = (req.query.q || "").toString().trim();

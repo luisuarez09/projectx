@@ -15,8 +15,14 @@ import ProveedorCreateModal from "./pages/proveedor/proveedor-create"
 import ProveedoresIndex from "./pages/proveedor/proveedor-view"
 import VentasInvoiceCreate from "./pages/invoices/ventas/ventas-create"
 import VentasIndex from "./pages/invoices/ventas/ventas"
+import CalculadoraReconversion from "./pages/CalcuadoraReconversion"
+import Login from "./pages/login"
 
 const router = createBrowserRouter([
+  {
+    path: "/login",
+    element: <Login />,
+  },
   {
     path: "/dashboard",
     element: (
@@ -38,6 +44,8 @@ const router = createBrowserRouter([
   { path: "/settings/company", element: <AppLayout><CompanyIndex /></AppLayout> },
   { path: "/settings/company/new", element: <AppLayout><CompanyEditor /></AppLayout> },
   { path: "/settings/company/:id", element: <AppLayout><CompanyEditor /></AppLayout> },
+
+  { path: "CalculadoraReconversion", element: <AppLayout><CalculadoraReconversion /></AppLayout> },
   {
     path: "*",
     element: (

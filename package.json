@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "api": "node api/index.js",
+    "seniat": "node api/seniat-server.js",
     "db:studio": "prisma studio",
     "db:migrate": "prisma migrate dev"
   },
@@ -75,5 +76,7 @@
     "vite": "^7.1.2",
     "vite-tsconfig-paths": "^5.1.4"
   },
-  "packageManager": "npm@10"
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  }
 }
