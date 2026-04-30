@@ -8,6 +8,9 @@ import CalculadoraReconversion from './pages/CalcuadoraReconversion';
 import Clients from './pages/clients/clients';
 import EstimateNew from './pages/estimates-new';
 import Login from './pages/login';
+import UsersIndex from './pages/settings/users/index';
+import UserEditor from './pages/settings/users/editor';
+import UserDetail from './pages/settings/users/detail';
 
 function App() {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -27,10 +30,14 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/calculadora-saren" element={<CalculadoraSaren />} />
           <Route path="/calculadora-reconversion" element={<CalculadoraReconversion />} />
-          
-          {/* ✅ nueva ruta de Clientes */}
           <Route path="/clients" element={<Clients />} />
           <Route path="/estimates/new" element={<EstimateNew />} />
+
+          {/* Usuarios */}
+          <Route path="/settings/users" element={<UsersIndex />} />
+          <Route path="/settings/users/new" element={<UserEditor />} />
+          <Route path="/settings/users/:id/edit" element={<UserEditor />} />
+          <Route path="/settings/users/:id" element={<UserDetail />} />
         </Routes>
       </main>
     </div>
