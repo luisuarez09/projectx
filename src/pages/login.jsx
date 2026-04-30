@@ -1,141 +1,264 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { ArrowRight, BadgeCheck, BookOpenText, Building2, Lock, Mail, ShieldCheck } from "lucide-react";
+
 import { Button } from "../components/ui/button";
+import { Card, CardContent } from "../components/ui/card";
+import { Checkbox } from "../components/ui/checkbox";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import { Checkbox } from "../components/ui/checkbox";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card";
-import { Building2, Mail, Lock, ArrowRight } from "lucide-react";
+
+const trustPoints = [
+  {
+    icon: ShieldCheck,
+    title: "Control y trazabilidad",
+    description: "Centraliza tareas, obligaciones y documentos con un flujo claro para el equipo.",
+  },
+  {
+    icon: BookOpenText,
+    title: "Gestión profesional",
+    description: "Organiza clientes, empresas y procesos sin convertir la operación en un ERP pesado.",
+  },
+  {
+    icon: BadgeCheck,
+    title: "Experiencia premium",
+    description: "Comparte avances con claridad y transmite una imagen moderna y confiable.",
+  },
+];
+
+function GoogleIcon() {
+  return (
+    <svg aria-hidden="true" className="size-4" viewBox="0 0 24 24">
+      <path
+        d="M21.81 12.227c0-.776-.069-1.518-.198-2.227H12v4.214h5.498a4.7 4.7 0 0 1-2.04 3.085v2.56h3.302c1.932-1.779 3.05-4.4 3.05-7.632Z"
+        fill="#4285F4"
+      />
+      <path
+        d="M12 22c2.754 0 5.06-.913 6.747-2.475l-3.302-2.56c-.913.612-2.08.975-3.445.975-2.65 0-4.894-1.79-5.694-4.197H2.892v2.641A9.998 9.998 0 0 0 12 22Z"
+        fill="#34A853"
+      />
+      <path
+        d="M6.306 13.743A5.996 5.996 0 0 1 6 12c0-.606.104-1.196.306-1.743V7.616H2.892A9.999 9.999 0 0 0 2 12c0 1.613.386 3.139 1.07 4.384l3.236-2.641Z"
+        fill="#FBBC05"
+      />
+      <path
+        d="M12 6.06c1.498 0 2.842.516 3.9 1.528l2.925-2.925C17.055 3.02 14.75 2 12 2a9.998 9.998 0 0 0-9.108 5.616l3.414 2.641C7.106 7.85 9.35 6.06 12 6.06Z"
+        fill="#EA4335"
+      />
+    </svg>
+  );
+}
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // Lógica de inicio de sesión
+  const handleSubmit = (event) => {
+    event.preventDefault();
     console.log("Login intentado con:", email);
   };
 
+  const handleGoogleSignIn = () => {
+    console.log("Inicio de sesion con Google solicitado");
+  };
+
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-zinc-50 dark:bg-zinc-950 relative overflow-hidden">
-      {/* Background Gradients & Decorations */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-500/20 blur-[120px] mix-blend-multiply dark:mix-blend-screen animate-pulse" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-500/20 blur-[120px] mix-blend-multiply dark:mix-blend-screen animate-pulse animation-delay-2000" />
-      
-      <div className="relative z-10 w-full max-w-md px-4">
-        {/* Logo/Brand */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30 mb-4 transform transition-transform hover:scale-105 duration-300">
-            <Building2 className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-zinc-900 to-zinc-500 dark:from-white dark:to-zinc-400">
-            Nexus ERP
-          </h1>
-          <p className="text-zinc-500 dark:text-zinc-400 mt-2 text-center text-sm font-medium">
-            Gestión Multi-Empresa Inteligente
-          </p>
-        </div>
+    <div className="relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#f7f4ee_0%,#ffffff_45%,#f6f7f8_100%)] text-slate-950">
+      <div className="absolute inset-0">
+        <div className="absolute left-[-10rem] top-[-8rem] size-[28rem] rounded-full bg-amber-200/45 blur-3xl" />
+        <div className="absolute bottom-[-12rem] right-[-8rem] size-[30rem] rounded-full bg-emerald-200/35 blur-3xl" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(15,23,42,0.04),transparent_38%)]" />
+      </div>
 
-        {/* Login Card */}
-        <Card className="backdrop-blur-xl bg-white/80 dark:bg-zinc-900/80 border-zinc-200/50 dark:border-zinc-800/50 shadow-2xl shadow-zinc-200/50 dark:shadow-black/50">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-semibold tracking-tight text-center">
-              Iniciar Sesión
-            </CardTitle>
-            <CardDescription className="text-zinc-500 dark:text-zinc-400 text-center">
-              Ingresa tus credenciales para acceder a tu cuenta
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Correo Electrónico</Label>
-                <div className="relative group">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-zinc-400 group-focus-within:text-blue-500 transition-colors" />
-                  <Input 
-                    id="email" 
-                    type="email" 
-                    placeholder="usuario@empresa.com" 
-                    className="pl-9 bg-white/50 dark:bg-zinc-950/50 border-zinc-200 dark:border-zinc-800 focus-visible:ring-blue-500 transition-all"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Contraseña</Label>
-                  <Link to="#" className="text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 transition-colors">
-                    ¿Olvidaste tu contraseña?
-                  </Link>
-                </div>
-                <div className="relative group">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-zinc-400 group-focus-within:text-blue-500 transition-colors" />
-                  <Input 
-                    id="password" 
-                    type="password" 
-                    placeholder="••••••••"
-                    className="pl-9 bg-white/50 dark:bg-zinc-950/50 border-zinc-200 dark:border-zinc-800 focus-visible:ring-blue-500 transition-all"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
+      <div className="relative mx-auto flex min-h-screen max-w-7xl items-center px-4 py-10 sm:px-6 lg:px-8">
+        <div className="grid w-full overflow-hidden rounded-[2rem] border border-white/70 bg-white/80 shadow-[0_30px_120px_rgba(15,23,42,0.12)] backdrop-blur xl:grid-cols-[1.1fr_0.9fr]">
+          <section className="relative hidden overflow-hidden border-r border-slate-200/70 bg-slate-950 px-8 py-10 text-white xl:flex xl:flex-col xl:justify-between">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.18),transparent_32%),linear-gradient(135deg,rgba(15,23,42,0.96),rgba(30,41,59,0.9))]" />
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent" />
 
-              <div className="flex items-center space-x-2 pt-2">
-                <Checkbox id="remember" className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600" />
-                <label
-                  htmlFor="remember"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-zinc-600 dark:text-zinc-400 select-none cursor-pointer"
-                >
-                  Recordarme en este dispositivo
-                </label>
-              </div>
-
-              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/30 transition-all group mt-4">
-                Entrar al Sistema
-                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </form>
-
-            <div className="mt-6 relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-zinc-200 dark:border-zinc-800" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-zinc-50 dark:bg-zinc-900 px-2 text-zinc-500">
-                  O continuar con
+            <div className="relative space-y-8">
+              <div className="inline-flex w-fit items-center gap-3 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm text-slate-200 backdrop-blur">
+                <span className="flex size-9 items-center justify-center rounded-full bg-white text-slate-950">
+                  <Building2 className="size-4" />
                 </span>
+                <div>
+                  <p className="font-medium">Project X</p>
+                  <p className="text-xs text-slate-300">Operación interna para firmas profesionales</p>
+                </div>
+              </div>
+
+              <div className="max-w-xl space-y-5">
+                <span className="inline-flex rounded-full border border-white/15 px-3 py-1 text-xs uppercase tracking-[0.24em] text-slate-300">
+                  Plataforma interna
+                </span>
+                <h1 className="text-4xl font-semibold tracking-tight text-balance">
+                  Ordena la gestión contable, legal y fiscal desde una sola vista.
+                </h1>
+                <p className="text-base leading-7 text-slate-300">
+                  Project X concentra clientes, empresas, tareas y respaldo documental con una experiencia clara,
+                  moderna y lista para el trabajo diario de la firma.
+                </p>
+              </div>
+
+              <div className="grid gap-4">
+                {trustPoints.map(({ icon: Icon, title, description }) => (
+                  <div
+                    key={title}
+                    className="flex items-start gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm"
+                  >
+                    <span className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white">
+                      <Icon className="size-4" />
+                    </span>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-white">{title}</p>
+                      <p className="text-sm leading-6 text-slate-300">{description}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-4">
-              <Button variant="outline" className="bg-white/50 dark:bg-zinc-950/50 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
-                <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path></svg>
-                Google
-              </Button>
-              <Button variant="outline" className="bg-white/50 dark:bg-zinc-950/50 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
-                <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd"></path></svg>
-                Microsoft
-              </Button>
+            <div className="relative flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-sm text-slate-300 backdrop-blur-sm">
+              <div>
+                <p className="font-medium text-white">Acceso seguro para tu equipo</p>
+                <p>Diseñado para operación diaria y seguimiento ordenado de procesos.</p>
+              </div>
+              <div className="text-right">
+                <p className="text-2xl font-semibold text-white">24/7</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Disponibilidad</p>
+              </div>
             </div>
-          </CardContent>
-          <CardFooter className="flex flex-col items-center justify-center space-y-2 pb-6">
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              ¿No tienes una cuenta de empresa?{" "}
-              <Link to="#" className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 transition-colors">
-                Solicitar acceso
-              </Link>
-            </p>
-          </CardFooter>
-        </Card>
-        
-        {/* Footer info */}
-        <div className="text-center mt-8 text-xs text-zinc-500 dark:text-zinc-400">
-          <p>© {new Date().getFullYear()} Nexus ERP. Todos los derechos reservados.</p>
+          </section>
+
+          <section className="flex items-center justify-center px-4 py-8 sm:px-8 sm:py-10 lg:px-12">
+            <div className="w-full max-w-md space-y-6">
+              <div className="space-y-4 xl:hidden">
+                <div className="inline-flex items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm shadow-sm">
+                  <span className="flex size-9 items-center justify-center rounded-full bg-slate-950 text-white">
+                    <Building2 className="size-4" />
+                  </span>
+                  <div>
+                    <p className="font-medium">Project X</p>
+                    <p className="text-xs text-slate-500">Sistema operativo interno para la firma</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <h1 className="text-3xl font-semibold tracking-tight text-slate-950">Bienvenido de nuevo</h1>
+                  <p className="text-sm leading-6 text-slate-600">
+                    Inicia sesión para continuar con la gestión de clientes, obligaciones y documentos.
+                  </p>
+                </div>
+              </div>
+
+              <div className="hidden space-y-2 xl:block">
+                <h2 className="text-3xl font-semibold tracking-tight text-slate-950">Iniciar sesión</h2>
+                <p className="text-sm leading-6 text-slate-600">
+                  Accede a tu espacio de trabajo y retoma el control de los procesos de la firma.
+                </p>
+              </div>
+
+              <Card className="border-slate-200/80 bg-white/90 py-0 shadow-none ring-0">
+                <CardContent className="space-y-6 px-0 py-0">
+                  <div className="space-y-3 px-6 pt-6">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="lg"
+                      onClick={handleGoogleSignIn}
+                      className="h-11 w-full justify-center gap-3 rounded-xl border-slate-300 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50"
+                    >
+                      <GoogleIcon />
+                      Continuar con Google
+                    </Button>
+
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t border-slate-200" />
+                      </div>
+                      <div className="relative flex justify-center">
+                        <span className="bg-white px-3 text-xs uppercase tracking-[0.22em] text-slate-400">
+                          O con tu correo
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleSubmit} className="space-y-5 px-6 pb-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="email" className="text-sm font-medium text-slate-700">
+                        Correo electrónico
+                      </Label>
+                      <div className="relative">
+                        <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="nombre@firma.com"
+                          className="h-11 rounded-xl border-slate-300 bg-slate-50 pl-10 text-slate-900 placeholder:text-slate-400 focus-visible:bg-white"
+                          value={email}
+                          onChange={(event) => setEmail(event.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <Label htmlFor="password" className="text-sm font-medium text-slate-700">
+                          Contraseña
+                        </Label>
+                        <Link to="#" className="text-sm font-medium text-slate-600 transition hover:text-slate-950">
+                          ¿Olvidaste tu contraseña?
+                        </Link>
+                      </div>
+                      <div className="relative">
+                        <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                        <Input
+                          id="password"
+                          type="password"
+                          placeholder="Ingresa tu contraseña"
+                          className="h-11 rounded-xl border-slate-300 bg-slate-50 pl-10 text-slate-900 placeholder:text-slate-400 focus-visible:bg-white"
+                          value={password}
+                          onChange={(event) => setPassword(event.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                      <label htmlFor="remember" className="flex items-center gap-3 text-sm text-slate-600">
+                        <Checkbox id="remember" className="border-slate-300 data-[state=checked]:bg-slate-950 data-[state=checked]:text-white" />
+                        Mantener sesión iniciada
+                      </label>
+                      <span className="text-xs uppercase tracking-[0.18em] text-slate-400">Seguro</span>
+                    </div>
+
+                    <Button
+                      type="submit"
+                      size="lg"
+                      className="h-11 w-full rounded-xl bg-slate-950 text-white hover:bg-slate-800"
+                    >
+                      Entrar al sistema
+                      <ArrowRight className="size-4" />
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+
+              <div className="space-y-3 text-center">
+                <p className="text-sm text-slate-600">
+                  ¿Tu empresa aún no tiene acceso?{" "}
+                  <Link to="#" className="font-medium text-slate-950 underline-offset-4 hover:underline">
+                    Solicitar activación
+                  </Link>
+                </p>
+                <p className="text-xs text-slate-400">
+                  Al continuar aceptas las políticas internas de acceso y protección documental.
+                </p>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
     </div>
